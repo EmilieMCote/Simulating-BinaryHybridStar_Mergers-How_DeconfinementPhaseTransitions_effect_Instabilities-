@@ -1,0 +1,11 @@
+matplotlib
+numpy
+pandas
+rc.params
+kuibit
+h5py
+collections
+scipy
+quibit
+pylab
+os
