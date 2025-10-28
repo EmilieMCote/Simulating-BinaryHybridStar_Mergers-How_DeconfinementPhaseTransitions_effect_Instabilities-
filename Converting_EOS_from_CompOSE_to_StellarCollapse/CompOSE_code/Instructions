@@ -1,0 +1,194 @@
+Our goal for the first part of our project is to convert the equation of state tables available
+on the CompOSE website (https://compose.obspm.fr/table) to a format that is compatible with
+IllinoisGRMHD (our GRMHD code). IllinoisGRMHD (along with many other GRMHD codes, such as GRHydro, 
+WhiskyTHC, and Spritz) uses a popular HDF5 format for reading and using the EOS, as can be found on
+the StellarCollapse EOS repository (https://stellarcollapse.org/equationofstate.html).
+
+The reason we want to use the tables on the CompOSE website is because they have several
+freely available EOS models which include quark degrees of freedom, but we must convert these
+to be compatible with our evolution code. Below I will write out some steps you can take
+to get started in doing this conversion.
+
+#=========================================================================================================================================================
+0. (Yes, as numerical relativists we start counting at zero!!!) Download and compile the code which reads
+CompOSE EOSs. I have attached a version of this code (code.zip) to the email chain which has these Instructions, 
+but you can also find versions of it on the CompOSE website itself. Once you have download the "code.zip"
+to the directory you are working from, unzip it. I typically make a directory to hold the code and unzip/compile
+everything there:
+          mkdir COMPOSE
+          mv code.zip COMPOSE
+          cd COMPOSE
+          unzip code.zip
+This will inflate the zip to give all of the codes we need. To compile this, we need the gfortran and hdf5 libraries. 
+If you don't have these, they can be downloaded and installed as follows:
+          sudo apt-get install gfortran
+          sudo apt-get install libhdf5-serial-dev
+Once you have all of the necessary software, you can compile the code by typing
+          make
+
+(Optional) If you want to use python to read and write the tables for the project, I recommend installing the pip installer to
+get all of the necessary python software. For python3:
+          sudo apt-get -y install python3-pip
+          pip3 install h5py
+          pip3 install numpy
+          pip3 install scipy
+
+#=========================================================================================================================================================
+1. Download the appropriate EOS files and software from CompOSE. Navigate to 
+          https://compose.obspm.fr/table
+and search 'hybrid.' This will bring up all of the EOSs with quark degrees of freedom at high densities.
+We want a model which has finite temperatures, so have a look at the column that says "T pts," and choose
+a table that has a value greater than 1 here. For the remainder of these instructions, I will work with 
+the example of the "TM1B139" EOS (https://compose.obspm.fr/eos/73), but you can use any finite temperature
+EOS. Download the "eos.zip" file from the "Data" section for your EOS. Put this zipped archive into a
+subdirectory for this specfic EOS, to avoid mixing results. For example,
+          mkdir B139
+          mv eos.zip B139
+          cd B139
+          unzip eos.zip
+
+#=========================================================================================================================================================
+2. Copy the compiled "compose" excutable from the COMPOSE directory into this directory, and run it
+          cp ../COMPOSE/compose .
+          ./compose
+
+#=========================================================================================================================================================
+3. This code runs in 3 modes. Run Mode 1 of the code by running the executable and typing "1". Mode 1 creates the required 
+set of files to initialize the reading of the EOS. When first running select mode 1, and answer all of the questions. For 
+our purposes, we want all of the available EOS data, which we can then sparse, so when asked how many of each quantity you 
+want, always select the maximum. The last question asks about the format in which you want the EOS information. Since 
+we will be working with the HDF5 format anyway, type in anything other than "1" to get all of the eos information into a 
+single HDF5 file.
+
+#=========================================================================================================================================================
+4. Run Mode 2 of the code by again running the executable and now typing "2". This mode asks about the interpolation and
+table bounds. If possible, choose the highest order interpolation scheme, typically "3" for third-order interpolation, and
+the maximum allowed table bounds for the three relevant variables (baryon density, temperature, and electron ("charge") 
+fraction). To see the available bounds of the table, refer to the CompOSE site for the EOS in question, and look at the 
+table on the right. For example, for the TM1B139 EOS, I would choose the following options when prompted by the executable:
+(My entries are shown by the ">>" symbols below)
+
+          Please select the interpolation order (1, 2, or 3) 
+          for the temperature T
+          >> 3
+
+          Please select the interpolation order (1, 2, or 3) 
+          for the baryon density n_b
+          >> 3
+        
+          Please select the interpolation order (1, 2, or 3) 
+          for the hadronic charge fraction Y_q
+          >> 3
+        
+          Please select if you want to calculate the EoS of matter in beta-equilibrium.
+          1: yes, else: no
+          >> 0
+        
+          Please select if you want the calculate the EoS for given entropy per baryon.
+          1: yes, else: no
+          >> 0
+        
+          Please select the tabulation scheme for the parameters from
+          0: explicit listing of parameter values
+          1: loop form of parameter values
+          >> 1
+        
+          Please enter the minimum and maximum values for the temperature T
+          >> 0.1 199
+
+          Please enter the number of grid points
+          >> 34
+
+          Please select the scaling of the grid points from
+          0: linear
+          else: logarithmic
+          >> 1
+        
+          Please enter the minimum and maximum values for the baryon density n_b
+          >> 7.59e-11 15.1
+
+          Please enter the number of grid points
+          >> 114
+
+          Please select the scaling of the grid points from
+          0: linear
+          else: logarithmic
+          >> 1
+        
+          Please enter the minimum and maximum values for the hadronic charge fraction Y_q
+          >> 0.01 0.562
+
+          Please enter the number of grid points
+          >> 71
+
+          Please select the scaling of the grid points from
+          0: linear
+          else: logarithmic
+          >> 0
+I have found that this set of choices gives the most accurate results because it minimizes interpolation, and when 
+there is interpolation, it is of high order. Of course, we won't know until we test the EOSs, and may have to 
+resort to 1st-order interpolation to avoid problems with discontinuities during the phase transition, but we will 
+stick with this for now.
+
+#=========================================================================================================================================================
+5. Finally, run Mode 3 of the executable (same as above, but instead Typing "3" when prompted). This will write all 
+of the required information into an hdf5 file called 
+                      eoscompose.h5
+which we must then read and re-write to suit our needs. I am most familiar with reading HDF5 files with python (using the 
+h5py package -- see https://docs.h5py.org/en/stable/quick.html for documentation). The quick start guide has useful information
+on retrieving the data inside of hdf5 files. Our goal is to read the relevant data in our "eoscompose.h5" file and to 
+re-write it in the same format of the StellarCollapse EOS files. 
+
+#=========================================================================================================================================================
+6. To familiarize yourself with the StellarCollapse EOS format, you should visit https://stellarcollapse.org/equationofstate.html 
+and download one of the EOS files. I will work with the LS220 EOS (LS EOS, K = 220 MeV), which is the second in the list at that site,
+as an example. Once you have download the EOS file, extract the EOS hdf5 file with
+                bzip2 -d LS220_234r_136t_50y_analmu_20091212_SVNr26.h5.bz2
+you can familiarize yourself with the format by opening it up in python, and reading the information. It would be good 
+practice to read the dataset in the LS220_234r_136t_50y_analmu_20091212_SVNr26.h5 and re-write it to another file using
+the same Groups and Keys (these are effectively what HDF5 uses to store and organize data). 
+
+#=========================================================================================================================================================
+7. Once you understand how to write the EOS in the format we need, we can try to extract the required data from the "eoscompose.h5"
+file. The absolutely crucial information we require in the StellarCollapse format is:
+              logpress (the log10 of the pressue in dyn/cm^2)
+              logenergy (the log10 of the specific internal energy + the energy shift (to ensure positive energies) in erg/g)
+              entropy 
+              cs2
+              logrho (log10 of rest mass density in g/cm^3)
+              logtemp (log10 of temperature in MeV)
+              ye (the electron fraction (same as the proton or "charge" fraction))
+              energy_shift (this is added to the specific internal energy to ensure positivity, typically this is 20 MeV)
+these variables are all available in the "eoscompose.h5" file and are necessary for the fluid evolution to proceed. The remainder
+of the variables may be filled with placeholder values, but ideally we can access these from the "eoscompose.h5" file as well.
+The ones marked with an x are not at all used by our evolution code, so we can just fill them with finite placeholder values.
+These are:
+          [x] munu    (chemical potential of neutrinos) - this should be close to zero always
+              dedt    (derivative of specific internal energy with respect to temperature)
+              dpdrhoe (dP/drho at constant e, where P=pressure, rho=rest mass density, e=specific internal energy)
+              dpderho (dP/de at constant rho)
+              muhat   (muhat = mu_n - mu_p, where n is neutron, p is proton)
+              mu_e    (electron chemical potential)
+              mu_p    (proton ")
+              mu_n    (neutron ")
+          [x] Xa      (alpha particle mass fraction)
+          [x] Xh      (heavy nuclei mass fraction)
+          [x] Xn      (neutron mass fraction)
+          [x] Xp      (proton mass fraction)
+          [x] Abar    (average mass number (number of protons + neutrons) in heavy nuclei)
+          [x] Zbar    (average charge number (number of protons) of heavy nuclei)
+              gamma   (effective adiabatic index = d(log P)/(d log rho)
+For additional information on these EOSs, please look at the "StellarCollapseEOS_usermanual.pdf" file I have also attached with
+this message.
+
+#=========================================================================================================================================================
+8. Once we have converted the EOS information in the "eoscompose.h5" file to the StellarCollapse format, we are ready to run simulations!
+We will first test that we can 
+                           a. take the LS220 EOS in CompOSE format and convert it to StellarCollapse format
+                           b. Run a simulation with our converted LS220
+                           c. Run a simulation with the original StellarCollapse LS220 EOS
+                           d. compare results, to ensure that our EOS reading/writing routines are sound
+Then, we can use our tested EOS reading/writing routines on the hybrid quark EOSs available on the CompOSE website, and study some
+interesting physical systems with hybrid stars!
+
+
