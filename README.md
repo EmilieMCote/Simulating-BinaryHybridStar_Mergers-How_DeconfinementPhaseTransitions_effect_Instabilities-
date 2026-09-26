@@ -20,6 +20,6 @@ Cactus/Einstein Toolkit modules (called "Thorns") we use for 3D stellar collapse
 https://www.einsteintoolkit.org/
 https://stellarcollapse.org/Zelmani.html
 
-[View PDF](Posters/N3AS_Merger_Remnant_Poster_2024.pdf)
+[View Research Poster PDF](Posters/N3AS_Merger_Remnant_Poster_2024.pdf)
 
-![poster](Posters/N3AS_Merger_Remnant_Poster_2024.png)
+![poster](Posters/N3AS_Merger_Remnants_Poster_2024.png)
