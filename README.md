@@ -19,3 +19,7 @@ https://stellarcollapse.org/index.php/microphysics.html
 Cactus/Einstein Toolkit modules (called "Thorns") we use for 3D stellar collapse and core-collapse supernova simulations.
 https://www.einsteintoolkit.org/
 https://stellarcollapse.org/Zelmani.html
+
+[View PDF](Posters/N3AS_Merger_Remnant_Poster_2024.pdf)
+
+![poster](Posters/N3AS_Merger_Remnant_Poster_2024.png)
